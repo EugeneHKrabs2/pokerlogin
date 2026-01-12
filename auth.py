@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
+from database import DynamoDB
 
 
 load_dotenv()
@@ -24,6 +25,8 @@ AUDIENCE = "my-api"
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+users = DynamoDB()
 
 class CreateUserRequest(BaseModel):
     email: str
@@ -52,7 +55,7 @@ def create_access_token(data: dict):
 
 @app.post("/auth/login")
 def login(email: str, password: str):
-    user = users.get(email) #change this to actual database
+    user = users.get_user(email) #change this to actual database
     if not user or not verify_password(password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -67,3 +70,11 @@ def login(email: str, password: str):
         "token_type": "bearer",
         "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
+
+@app.post("/auth/register")
+def register(user: CreateUserRequest):
+    hashed_password = bcrypt_context.hash(user.password)
+    if not users.create_user(user.email, hashed_password):
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    return {"message": "User created successfully"}
