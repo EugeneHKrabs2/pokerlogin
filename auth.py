@@ -8,7 +8,7 @@ from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 from database import DynamoDB
-
+from mangum import Mangum
 
 load_dotenv()
 
@@ -78,3 +78,5 @@ def register(user: CreateUserRequest):
         raise HTTPException(status_code=400, detail="User already exists")
 
     return {"message": "User created successfully"}
+
+handler = Mangum(app)
