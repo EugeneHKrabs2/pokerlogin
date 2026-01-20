@@ -8,7 +8,8 @@ from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 from database import DynamoDB
-
+from mangum import Mangum
+import boto3
 
 load_dotenv()
 
@@ -26,7 +27,9 @@ AUDIENCE = "my-api"
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-users = DynamoDB()
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table("users")
+users = DynamoDB(table)
 
 class CreateUserRequest(BaseModel):
     email: str
@@ -78,3 +81,5 @@ def register(user: CreateUserRequest):
         raise HTTPException(status_code=400, detail="User already exists")
 
     return {"message": "User created successfully"}
+
+handler = Mangum(app)
