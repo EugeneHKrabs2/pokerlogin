@@ -2,8 +2,6 @@ import boto3
 from botocore.exceptions import ClientError
 from abc import ABC, abstractmethod
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("users")
-
 class Database(ABC):
     @abstractmethod
     def get_user(self, email: str):
@@ -14,9 +12,12 @@ class Database(ABC):
         pass
 
 class DynamoDB(Database):
+    def __init__(self, table_name: str):
+        self.table = dynamodb.Table(table_name)
+
     def get_user(self, email: str):
         try:
-            response = table.get_item(Key={"email": email})
+            response = self.table.get_item(Key={"email": email})
             return response.get("Item")
         except ClientError as e:
             print(f"Error getting user: {e.response['Error']['Message']}")
@@ -24,7 +25,7 @@ class DynamoDB(Database):
 
     def create_user(self, email: str, hashed_password: str):
         try:
-            table.put_item(Item={"email": email, "hashed_password": hashed_password})
+            self.table.put_item(Item={"email": email, "hashed_password": hashed_password})
             return True
         except ClientError as e:
             print(f"Error creating user: {e.response['Error']['Message']}")
